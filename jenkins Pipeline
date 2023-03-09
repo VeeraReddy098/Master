@@ -1,0 +1,97 @@
+pipeline {
+  agent { label 'ansible' }
+  parameters {
+    string name: 'new_platform_name', defaultValue: '', description: 'New Platform Name'
+    string name: 'execution_config', defaultValue: '', description: 'Execution Config'
+    string name: 'reference_platform_name', defaultValue: '', description: 'Reference Platform Name'
+  }
+  environment{
+      PATH="/usr/bin/python:${env.PATH}"
+  }
+
+  stages {
+        stage('parameter test') {
+            steps {
+                script{
+                    sh "echo ====== branch created - ${params.new_platform_name} ========="
+                }
+            }
+        }
+       
+       
+        stage('Manifest clone and branch creation') {
+            steps {
+                 dir('frameworks.devops.platform-integration-framework.manifest') {  
+                    git branch: 'main', credentialsId: 'github_jenkins_name', url: 'https://github.com/intel-innersource/frameworks.devops.platform-integration-framework.manifest.git'
+                    echo "Path is:${env.PATH}"
+                    sh 'git branch'
+                    sh "git checkout -b ${params.new_platform_name}"
+                    sh 'git branch'
+                     
+                 }
+            }
+        }
+       
+ 
+        stage('platci_automation_script clone and Powr installation') {
+            steps {
+              dir('platci_automation_script') {
+                git branch: 'main', credentialsId: 'github_token_veera', url: 'https://github.com/intel-sandbox/platci_automation_script.git'
+                sh 'python3 --version'
+   sh 'python3 -m venv venv'
+   sh ". venv/bin/activate && pip install powr --proxy=http://child-prc.intel.com:913 --extra-index-url=https://ubit-artifactory-or.intel.com/artifactory/api/pypi/one-windows-pypi-local/simple && python platform_onboard.py -i ${params.new_platform_name} -h '${params.execution_config}' -r ${params.reference_platform_name} -w /home/jenkins/workspace/dcai-dpea-paiv/Pipeline/frameworks.devops.platform-integration-framework.manifest"
+                sh 'git add .'
+                sh 'git commit -m "add new commit"'
+              }  
+            }
+        }
+       
+
+
+        // stage('create branch'){
+        //   steps {
+        //     sh 'ls -la'  
+        //     dir ('frameworks.devops.platform-integration-framework.manifest'){
+        //         echo 'Hello Manifest Repo'
+        //         sh 'git branch'
+        //         sh "git checkout -b ${params.new_platform_name}"
+        //         sh 'git branch'
+        //     }
+            // sh 'git branch'
+            // sh "git checkout -b ${params.new_platform_name}"
+            // script{
+            //   GIT_CREDS = credentials(github_token_veera)
+            //   sh '''
+            // sh 'git branch'
+            //   ''
+        //     }
+           
+        // }
+// stage('enabling manifest file') {
+// steps {
+//    sh 'python --version'
+//    sh 'sudo apt install python3.8-venv'
+//    sh 'python3 -m venv venv'
+// //   sh 'ls -la ${pwd()}'
+//                 // sh '/home/jenkins/workspace/dcai-dpea-paiv/Pipeline/venv/bin/activate'
+// //sh 'python platform_onboard.py -i test -h "test paltform" -r ADL-HSB -w ../frameworks.devops.platform-integration-framework.manifest'
+//        //sh "ls -l"
+//        //sh "ls ../"
+// }
+// }
+    }
+    // post {
+    //   always {
+    //     cleanWs()
+    //     dir("${env.WORKSPACE}@tmp") {
+    //       deleteDir()
+    //     }
+    //     dir("${env.WORKSPACE}@script") {
+    //       deleteDir()
+    //     }
+    //     dir("${env.WORKSPACE}@script@tmp") {
+    //       deleteDir()
+    //     }
+    //   }
+    // }
+}
